@@ -11,7 +11,7 @@ typedef struct item {
     int id;
 } Item;
 
-static int item_count = 0;
+int item_count = 0;
 
 void start_shop();
 void create_stock_from_product(char *file_name);
@@ -20,9 +20,13 @@ int is_leap(int n);
 unsigned long date_to_day(char *date);
 void create_item(Item *item, char *name, double price, char *exp, int id);
 void sort_stock_file();
+void add_to_stock(char *name,double price,char *exp,int id);
+void remove_from_stock(int id);
 
 int main() {
     start_shop();
+    add_to_stock("chocolate",169,"2/24/2022",item_count);
+    remove_from_stock(2);
 
     return 0;
 }
@@ -35,7 +39,6 @@ void start_shop() {
     if (!stock_file) {
         create_stock_from_product("product.csv");
     }
-    fclose(stock_file);
     sort_stock_file();
 }
 
@@ -124,6 +127,10 @@ void sort_stock_file() {
 
     char buffer[255];
     int idx = 0;
+    int product_exist = 0;
+    if(item_count>0){
+        product_exist = 1;
+    }
     while (fgets(buffer, 255, stock_file) != NULL) {
         Item item;
         sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
@@ -131,6 +138,11 @@ void sort_stock_file() {
         stock_arr = realloc(stock_arr, sizeof(Item) * (idx+1));
         stock_arr[idx] = item;
         idx++;
+        item_count++;
+        if(product_exist){
+            item_count--;
+
+        }
     }
     
     for (int slot = 1; slot < idx; slot++) {
@@ -152,4 +164,44 @@ void sort_stock_file() {
 
     remove("stock.csv");
     rename("temp_stock.csv","stock.csv");
+}
+
+void add_to_stock(char *name,double price,char *exp,int id){
+    FILE *stock_file = fopen("stock.csv","a");
+    fprintf(stock_file,"%s,%lf,%s,%d",name,price,exp,id);
+    fclose(stock_file);
+    item_count++;
+    sort_stock_file();
+}
+
+void remove_from_stock(int item_id){
+    if(item_id > item_count){
+        puts("Item Not Found");
+        return ;
+    }
+    FILE *stock_file, *temp_stock_file;
+    char buffer[2048];
+    char name[10], exp[10];
+    double price;
+    int id;
+    stock_file = fopen("stock.csv", "r");
+    temp_stock_file = fopen("temp_stock.csv", "w");
+
+    int keep_reading = 1;
+    do {
+        fgets(buffer, 2048, stock_file);
+        sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
+        if (feof(stock_file)) {
+            keep_reading = 0;
+        } else if (id != item_id) {
+            fputs(buffer, temp_stock_file);
+        }
+    } while (keep_reading);
+
+    fclose(stock_file);
+    fclose(temp_stock_file);
+
+    remove("stock.csv");
+    rename("temp_stock.csv", "stock.csv");
+
 }
