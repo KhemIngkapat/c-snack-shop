@@ -13,37 +13,49 @@ typedef struct item {
 
 static int item_count = 0;
 
+void start_shop();
+void create_stock_from_product(char *file_name);
 char *strtrim(char *str);
+int is_leap(int n);
+unsigned long date_to_day(char *date);
 void create_item(Item *item, char *name, double price, char *exp, int id);
-Item *read_product(char *file_name);
-Item *sort_stock(Item *stock, int size);
-void add_to_stock(Item item);
-void remove_from_stock(Item item);
-void apply_promotion(Item stock[], int stock_size, double discount);
-void create_stock_file(Item *item, int size);
-void display_item(Item *stock);
+void sort_stock_file();
 
 int main() {
-    puts("lksjdflkj");
-    Item *stock = read_product("product.csv");
-
-    stock = sort_stock(stock, item_count);
-    create_stock_file(stock, item_count);
-    Item chocolate = {"chocolate",22.5,"6/15/2008",item_count};
-    add_to_stock(chocolate);
-
-    display_item(stock);
-
-
-    // display all item
-    // recursively ask customer what they want to pick
-    // add the item to cart
-    // check out -> add all item price total
-    // randomly pick number and apply promotion if number meet the criteria
-    // thats it
+    start_shop();
 
     return 0;
 }
+
+void start_shop() {
+    char stock_file_name[] = "stock.csv";
+    char product_file_name[] = "product.csv";
+
+    FILE *stock_file = fopen(stock_file_name, "r");
+    if (!stock_file) {
+        create_stock_from_product("product.csv");
+    }
+    fclose(stock_file);
+    sort_stock_file();
+}
+
+void create_stock_from_product(char *file_name) {
+    char name[10], exp[10];
+    double price;
+    FILE *product_file = fopen(file_name, "r");
+    FILE *stock_file = fopen("stock.csv", "w");
+    char buffer[255];
+
+    while (fgets(buffer, 255, product_file) != NULL) {
+        Item item;
+        sscanf(buffer, "%20[^,],%lf,%s", name, &price, exp);
+        fprintf(stock_file, "%s,%lf,%s,%d\n", name, price, exp, item_count);
+        item_count++;
+    }
+    fclose(product_file);
+    fclose(stock_file);
+}
+
 char *strtrim(char *str) {
     size_t len = strlen(str);
     if (len == 0) {
@@ -102,110 +114,42 @@ void create_item(Item *item, char *name, double price, char *exp, int id) {
     item->id = id;
 }
 
-Item *read_product(char *file_name){
-    char name[10], exp[10];
-    double price;
-    Item *stock = malloc(sizeof(Item) * 0);
-    FILE *file = fopen(file_name, "r");
-    char buffer[255];
-    while (fgets(buffer, 255, file) != NULL) {
-        Item item;
-        sscanf(buffer, "%20[^,],%lf,%s", name, &price, exp);
-        create_item(&item, name, price, exp, item_count+1);
-        item_count++;
-        // dynamically allocating memeory size by stock size;
-        stock = realloc(stock, sizeof(Item) * item_count);
-        stock[item_count - 1] = item;
-    }
-    fclose(file);
-    return stock;
-
-}
-
-Item *sort_stock(Item *stock, int size) {
-    for (int slot = 1; slot < size; slot++) {
-        Item val = stock[slot];
-        int test_slot = slot - 1;
-        while (test_slot > -1 && stock[test_slot].timestamp > val.timestamp) {
-            stock[test_slot + 1] = stock[test_slot];
-            test_slot -= 1;
-        }
-        stock[test_slot + 1] = val;
-    }
-    return stock;
-}
-
-void add_to_stock(Item item) {
-    FILE *file;
-    file = fopen("stock.csv", "a");
-
-    fprintf(file, "%s,%lf,%s,%d\n", item.name, item.price, item.exp, item.id);
-
-    fclose(file);
-    item_count++;
-}
-
-void remove_from_stock(Item item) {
-    FILE *file, *temp;
-    char buffer[2048];
+void sort_stock_file() {
     char name[10], exp[10];
     double price;
     int id;
-    file = fopen("stock.csv", "r");
-    temp = fopen("temp_stock.csv", "w");
+    FILE *stock_file = fopen("stock.csv", "r");
+    FILE *temp_stock_file = fopen("temp_stock.csv", "w");
+    Item *stock_arr = malloc(sizeof(Item) * 0);
 
-    int keep_reading = 1;
-    do {
-        fgets(buffer, 2048, file);
+    char buffer[255];
+    int idx = 0;
+    while (fgets(buffer, 255, stock_file) != NULL) {
+        Item item;
         sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
-        if (feof(file)) {
-            keep_reading = 0;
-        } else if (id != item.id) {
-            fputs(buffer, temp);
+        create_item(&item, name, price, exp, id);
+        stock_arr = realloc(stock_arr, sizeof(Item) * (idx+1));
+        stock_arr[idx] = item;
+        idx++;
+    }
+    
+    for (int slot = 1; slot < idx; slot++) {
+        Item val = stock_arr[slot];
+        int test_slot = slot - 1;
+        while (test_slot > -1 &&
+               stock_arr[test_slot].timestamp > val.timestamp) {
+            stock_arr[test_slot + 1] = stock_arr[test_slot];
+            test_slot -= 1;
         }
-    } while (keep_reading);
-
-    fclose(file);
-    fclose(temp);
+        stock_arr[test_slot + 1] = val;
+    }
+    for (int i = 0; i < idx; i++) {
+        fprintf(temp_stock_file, "%s,%lf,%s,%d\n", stock_arr[i].name,
+                stock_arr[i].price, stock_arr[i].exp, stock_arr[i].id);
+    }
+    fclose(stock_file);
+    fclose(temp_stock_file);
 
     remove("stock.csv");
-    rename("temp_stock.csv", "final/stock.csv");
-}
-
-void apply_promotion(Item stock[], int stock_size, double discount) {
-    for (int i = 0; i < stock_size; i++) {
-        float discounted = (double)1 - discount;
-        stock[i].price = stock[i].price * discounted;
-    }
-}
-
-void create_stock_file(Item *item, int size) {
-    FILE *file;
-    file = fopen("stock.csv", "w");
-
-    for (int i = 0; i < size; i++) {
-        fprintf(file, "%s,%lf,%s,%d\n", item[i].name, item[i].price,
-                item[i].exp, item[i].id);
-    }
-    fclose(file);
-}
-
-void print_line(int length){
-    for(int i = 0;i<length;i++){
-        printf("-");
-    }
-    puts("");
-}
-
-void display_item(Item *stock){
-    puts("Hello, Welcome to our snack shop");
-    puts("this is our products");
-    print_line(30);
-
-    printf("|%-18s|%9s|\n","product","price");
-    print_line(30);
-    for(int i = 0;i<item_count;i++){
-        printf("|%-18s|%9.2lf|\n",stock[i].name,stock[i].price);
-    }
-    print_line(30);
+    rename("temp_stock.csv","stock.csv");
 }
