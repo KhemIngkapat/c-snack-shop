@@ -24,6 +24,7 @@ void create_stock_file(Item *item, int size);
 void display_item(Item *stock);
 
 int main() {
+    puts("lksjdflkj");
     Item *stock = read_product("product.csv");
 
     stock = sort_stock(stock, item_count);
