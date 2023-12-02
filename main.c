@@ -20,13 +20,18 @@ int is_leap(int n);
 unsigned long date_to_day(char *date);
 void create_item(Item *item, char *name, double price, char *exp, int id);
 void sort_stock_file();
-void add_to_stock(char *name,double price,char *exp,int id);
+void add_to_stock(char *name, double price, char *exp,int id);
 void remove_from_stock(int id);
+Item *stock_from_file();
+void selling();
 
 int main() {
     start_shop();
-    add_to_stock("chocolate",169,"2/24/2022",item_count);
-    remove_from_stock(2);
+    /* printf("item_count = %d\n",item_count); */
+    /* add_to_stock("chocolate", 169, "2/24/2022",item_count); */
+    /* remove_from_stock(2); */
+    selling();
+
 
     return 0;
 }
@@ -128,23 +133,22 @@ void sort_stock_file() {
     char buffer[255];
     int idx = 0;
     int product_exist = 0;
-    if(item_count>0){
+    if (item_count > 0) {
         product_exist = 1;
     }
     while (fgets(buffer, 255, stock_file) != NULL) {
         Item item;
         sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
         create_item(&item, name, price, exp, id);
-        stock_arr = realloc(stock_arr, sizeof(Item) * (idx+1));
+        stock_arr = realloc(stock_arr, sizeof(Item) * (idx + 1));
         stock_arr[idx] = item;
         idx++;
         item_count++;
-        if(product_exist){
+        if (product_exist) {
             item_count--;
-
         }
     }
-    
+
     for (int slot = 1; slot < idx; slot++) {
         Item val = stock_arr[slot];
         int test_slot = slot - 1;
@@ -163,21 +167,20 @@ void sort_stock_file() {
     fclose(temp_stock_file);
 
     remove("stock.csv");
-    rename("temp_stock.csv","stock.csv");
+    rename("temp_stock.csv", "stock.csv");
 }
 
-void add_to_stock(char *name,double price,char *exp,int id){
-    FILE *stock_file = fopen("stock.csv","a");
-    fprintf(stock_file,"%s,%lf,%s,%d",name,price,exp,id);
+void add_to_stock(char *name, double price, char *exp,int id) {
+    FILE *stock_file = fopen("stock.csv", "a");
+    fprintf(stock_file, "%s,%lf,%s,%d", name, price, exp,id);
     fclose(stock_file);
-    item_count++;
     sort_stock_file();
 }
 
-void remove_from_stock(int item_id){
-    if(item_id > item_count){
+void remove_from_stock(int item_id) {
+    if (item_id > item_count) {
         puts("Item Not Found");
-        return ;
+        return;
     }
     FILE *stock_file, *temp_stock_file;
     char buffer[2048];
@@ -203,5 +206,73 @@ void remove_from_stock(int item_id){
 
     remove("stock.csv");
     rename("temp_stock.csv", "stock.csv");
+    item_count--;
+}
 
+Item *stock_from_file() {
+    char name[20],exp[10];
+    double price;
+    int id;
+    FILE *stock_file = fopen("stock.csv","r");
+    Item *stock_arr = malloc(sizeof(Item) * 0);
+    char buffer[255];
+
+    int idx = 0;
+    while (fgets(buffer, 255, stock_file) != NULL) {
+        Item item;
+        sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
+        create_item(&item, name, price, exp, id);
+        stock_arr = realloc(stock_arr, sizeof(Item) * (idx + 1));
+        stock_arr[idx] = item;
+        idx++;
+    }
+
+    return stock_arr;
+    fclose(stock_file);
+
+}
+void print_line(int length){
+    for(int i = 0;i<length;i++){
+        printf("-");
+    }
+    puts("");
+}
+
+void selling(){
+    static int cart_idx = 0;
+    Item *stock = stock_from_file();
+    int id_arr[item_count];
+    for(int i = 0;i<item_count;i++){
+        id_arr[i] = stock[i].id;
+    }
+    int cart[item_count];
+    puts("Hello, Welcome to our snack shop");
+    puts("this is our products");
+    print_line(32);
+
+    printf("|id|%-18s|%9s|\n","product","price");
+    print_line(32);
+    for(int i = 0;i<item_count;i++){
+        printf("|%2d|%-18s|%9.2lf|\n",i,stock[i].name,stock[i].price);
+    }
+    print_line(32);
+
+    char input[5];
+    printf("Select item by putting the id in\n");
+    printf("And to checkout enter \"c\"\n");
+    printf("enter here : ");
+    scanf("%s",input);
+    if(input[0] == 99){
+        printf("Checkout now!\n");
+        return ;
+    }else if(input[0] > 57 || atoi(input) >= item_count){
+        puts("Invalid Input");
+        selling();
+    }else{
+        cart[cart_idx] = atoi(input);
+        remove_from_stock(id_arr[atoi(input)]);
+        cart_idx++;
+        selling();
+    }
+    
 }
