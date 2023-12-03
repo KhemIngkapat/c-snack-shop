@@ -31,6 +31,7 @@ int main() {
     /* add_to_stock("chocolate", 169, "2/24/2022",item_count); */
     /* remove_from_stock(2); */
     selling();
+    
 
 
     return 0;
@@ -216,7 +217,7 @@ Item *stock_from_file() {
     FILE *stock_file = fopen("stock.csv","r");
     Item *stock_arr = malloc(sizeof(Item) * 0);
     char buffer[255];
-
+    
     int idx = 0;
     while (fgets(buffer, 255, stock_file) != NULL) {
         Item item;
@@ -240,12 +241,12 @@ void print_line(int length){
 
 void selling(){
     static int cart_idx = 0;
+    static Item cart[item_count];
     Item *stock = stock_from_file();
     int id_arr[item_count];
     for(int i = 0;i<item_count;i++){
         id_arr[i] = stock[i].id;
     }
-    int cart[item_count];
     puts("Hello, Welcome to our snack shop");
     puts("this is our products");
     print_line(32);
@@ -264,13 +265,20 @@ void selling(){
     scanf("%s",input);
     if(input[0] == 99){
         printf("Checkout now!\n");
+        for(int i = 0;i<cart_idx;i++){
+            printf("%s\n",cart[i].name);
+        }
         return ;
     }else if(input[0] > 57 || atoi(input) >= item_count){
         puts("Invalid Input");
         selling();
     }else{
-        cart[cart_idx] = atoi(input);
-        remove_from_stock(id_arr[atoi(input)]);
+        int sel_idx = atoi(input);
+        printf("sel_idx = %d\n",sel_idx);
+        printf("you select %s\n",stock[sel_idx].name);
+        cart[cart_idx] = stock[sel_idx];
+        puts("something broken before here");
+        remove_from_stock(id_arr[sel_idx]);
         cart_idx++;
         selling();
     }
