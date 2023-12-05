@@ -42,9 +42,9 @@ int main() {
     } else {
         int promotion = rand() % 10;
         if (promotion > 7) {
-            puts("Today is a special day, Promotion day!!!");
-        } else {
-            puts("fuck you");
+            double discount = (rand() % 50);
+            printf("you got discount for %lf%\n",discount);
+            apply_promotion(discount/100);
         }
         Item *cart;
         cart = malloc(0);
@@ -333,3 +333,26 @@ void checkout(Item *cart, int cart_size) {
         checkout(cart, cart_size);
     }
 }
+
+void apply_promotion(double discounted){
+    char buffer[2048];
+    char name[10], exp[10];
+    double price;
+    int id;
+
+    FILE *stock_file = fopen("stock.csv","r");
+    FILE *temp_stock_file = fopen("temp_stock.csv","w");
+
+    while (fgets(buffer, 255, stock_file) != NULL) {
+        sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
+        price = price*(1-discounted);
+        fprintf(temp_stock_file,"%s,%lf,%s,%d\n",name,price,exp,id);
+    }
+    fclose(stock_file);
+    fclose(temp_stock_file);
+
+    remove("stock.csv");
+    rename("temp_stock.csv","stock.csv");
+
+}
+
