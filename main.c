@@ -18,21 +18,20 @@ void create_stock_from_product(char *file_name);
 char *strtrim(char *str);
 int is_leap(int n);
 unsigned long date_to_day(char *date);
-void create_item(Item *item, char *name, double price, char *exp, int id);
+Item create_item(char *name, double price, char *exp, int id);
 void sort_stock_file();
-void add_to_stock(char *name, double price, char *exp,int id);
+void add_to_stock(char *name, double price, char *exp, int id);
 void remove_from_stock(int id);
 Item *stock_from_file();
 void selling();
 
 int main() {
     start_shop();
-    /* printf("item_count = %d\n",item_count); */
-    /* add_to_stock("chocolate", 169, "2/24/2022",item_count); */
+    printf("item_count = %d\n",item_count);
+    add_to_stock("chocolate", 169, "2/24/2022",item_count);
+    printf("item_count = %d\n",item_count);
     /* remove_from_stock(2); */
-    selling();
-    
-
+    /* selling(); */
 
     return 0;
 }
@@ -55,11 +54,11 @@ void create_stock_from_product(char *file_name) {
     FILE *stock_file = fopen("stock.csv", "w");
     char buffer[255];
 
+    int temp_id = 0;
     while (fgets(buffer, 255, product_file) != NULL) {
-        Item item;
         sscanf(buffer, "%20[^,],%lf,%s", name, &price, exp);
-        fprintf(stock_file, "%s,%lf,%s,%d\n", name, price, exp, item_count);
-        item_count++;
+        fprintf(stock_file, "%s,%lf,%s,%d\n", name, price, exp, temp_id);
+        temp_id++;
     }
     fclose(product_file);
     fclose(stock_file);
@@ -114,13 +113,16 @@ unsigned long date_to_day(char *date) {
     return days;
 }
 
-void create_item(Item *item, char *name, double price, char *exp, int id) {
+Item create_item(char *name, double price, char *exp, int id) {
+    Item item;
 
-    strcpy(item->name, strtrim(name));
-    item->price = price;
-    strcpy(item->exp, strtrim(exp));
-    item->timestamp = date_to_day(exp);
-    item->id = id;
+    strcpy(item.name, strtrim(name));
+    item.price = price;
+    strcpy(item.exp, strtrim(exp));
+    item.timestamp = date_to_day(exp);
+    item.id = id;
+    item_count++;
+    return item;
 }
 
 void sort_stock_file() {
@@ -133,22 +135,13 @@ void sort_stock_file() {
 
     char buffer[255];
     int idx = 0;
-    int product_exist = 0;
-    if (item_count > 0) {
-        product_exist = 1;
-    }
     while (fgets(buffer, 255, stock_file) != NULL) {
-        Item item;
         sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
-        create_item(&item, name, price, exp, id);
         stock_arr = realloc(stock_arr, sizeof(Item) * (idx + 1));
-        stock_arr[idx] = item;
+        stock_arr[idx] = create_item(name, price, exp, id);
         idx++;
-        item_count++;
-        if (product_exist) {
-            item_count--;
-        }
     }
+    item_count = idx;
 
     for (int slot = 1; slot < idx; slot++) {
         Item val = stock_arr[slot];
@@ -160,6 +153,7 @@ void sort_stock_file() {
         }
         stock_arr[test_slot + 1] = val;
     }
+
     for (int i = 0; i < idx; i++) {
         fprintf(temp_stock_file, "%s,%lf,%s,%d\n", stock_arr[i].name,
                 stock_arr[i].price, stock_arr[i].exp, stock_arr[i].id);
@@ -171,9 +165,9 @@ void sort_stock_file() {
     rename("temp_stock.csv", "stock.csv");
 }
 
-void add_to_stock(char *name, double price, char *exp,int id) {
+void add_to_stock(char *name, double price, char *exp, int id) {
     FILE *stock_file = fopen("stock.csv", "a");
-    fprintf(stock_file, "%s,%lf,%s,%d", name, price, exp,id);
+    fprintf(stock_file, "%s,%lf,%s,%d", name, price, exp, id);
     fclose(stock_file);
     sort_stock_file();
 }
@@ -211,18 +205,17 @@ void remove_from_stock(int item_id) {
 }
 
 Item *stock_from_file() {
-    char name[20],exp[10];
+    char name[20], exp[10];
     double price;
     int id;
-    FILE *stock_file = fopen("stock.csv","r");
+    FILE *stock_file = fopen("stock.csv", "r");
     Item *stock_arr = malloc(sizeof(Item) * 0);
     char buffer[255];
-    
+
     int idx = 0;
     while (fgets(buffer, 255, stock_file) != NULL) {
-        Item item;
         sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
-        create_item(&item, name, price, exp, id);
+        Item item = create_item(name, price, exp, id);
         stock_arr = realloc(stock_arr, sizeof(Item) * (idx + 1));
         stock_arr[idx] = item;
         idx++;
@@ -230,31 +223,30 @@ Item *stock_from_file() {
 
     return stock_arr;
     fclose(stock_file);
-
 }
-void print_line(int length){
-    for(int i = 0;i<length;i++){
+void print_line(int length) {
+    for (int i = 0; i < length; i++) {
         printf("-");
     }
     puts("");
 }
 
-void selling(){
+void selling() {
     static int cart_idx = 0;
-    static Item cart[item_count];
+    Item cart[item_count];
     Item *stock = stock_from_file();
     int id_arr[item_count];
-    for(int i = 0;i<item_count;i++){
+    for (int i = 0; i < item_count; i++) {
         id_arr[i] = stock[i].id;
     }
     puts("Hello, Welcome to our snack shop");
     puts("this is our products");
     print_line(32);
 
-    printf("|id|%-18s|%9s|\n","product","price");
+    printf("|id|%-18s|%9s|\n", "product", "price");
     print_line(32);
-    for(int i = 0;i<item_count;i++){
-        printf("|%2d|%-18s|%9.2lf|\n",i,stock[i].name,stock[i].price);
+    for (int i = 0; i < item_count; i++) {
+        printf("|%2d|%-18s|%9.2lf|\n", i, stock[i].name, stock[i].price);
     }
     print_line(32);
 
@@ -262,25 +254,24 @@ void selling(){
     printf("Select item by putting the id in\n");
     printf("And to checkout enter \"c\"\n");
     printf("enter here : ");
-    scanf("%s",input);
-    if(input[0] == 99){
+    scanf("%s", input);
+    if (input[0] == 99) {
         printf("Checkout now!\n");
-        for(int i = 0;i<cart_idx;i++){
-            printf("%s\n",cart[i].name);
+        for (int i = 0; i < cart_idx; i++) {
+            printf("%s\n", cart[i].name);
         }
-        return ;
-    }else if(input[0] > 57 || atoi(input) >= item_count){
+        return;
+    } else if (input[0] > 57 || atoi(input) >= item_count) {
         puts("Invalid Input");
         selling();
-    }else{
+    } else {
         int sel_idx = atoi(input);
-        printf("sel_idx = %d\n",sel_idx);
-        printf("you select %s\n",stock[sel_idx].name);
+        printf("sel_idx = %d\n", sel_idx);
+        printf("you select %s\n", stock[sel_idx].name);
         cart[cart_idx] = stock[sel_idx];
         puts("something broken before here");
         remove_from_stock(id_arr[sel_idx]);
         cart_idx++;
         selling();
     }
-    
 }
