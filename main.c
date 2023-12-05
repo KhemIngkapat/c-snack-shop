@@ -27,6 +27,8 @@ Item *stock_from_file();
 void selling(Item *cart);
 void checkout(Item *cart, int cart_size);
 void apply_promotion(double discounted);
+void admin();
+void re_id_stock();
 
 int main() {
     srand(time(NULL));
@@ -38,18 +40,19 @@ int main() {
     printf("Put your number in : ");
     scanf("%d", &mode);
     if (mode == 1) {
-        puts("admin mode is coming...");
+        admin();
     } else {
         int promotion = rand() % 10;
-        if (promotion > 7) {
+        if (promotion > 5) {
             double discount = (rand() % 50);
-            printf("you got discount for %lf%\n",discount);
-            apply_promotion(discount/100);
+            printf("you got discount for %lf%\n", discount);
+            apply_promotion(discount / 100);
         }
         Item *cart;
         cart = malloc(0);
         selling(cart);
     }
+    re_id_stock();
 
     return 0;
 }
@@ -61,8 +64,8 @@ void start_shop() {
     FILE *stock_file = fopen(stock_file_name, "r");
     if (!stock_file) {
         create_stock_from_product("product.csv");
+        sort_stock_file();
     }
-    sort_stock_file();
 }
 
 void create_stock_from_product(char *file_name) {
@@ -327,6 +330,9 @@ void checkout(Item *cart, int cart_size) {
                 skip++;
             }
         }
+        Item removed_item = cart[select_index];
+        add_to_stock(removed_item.name, removed_item.price, removed_item.exp,
+                     removed_item.id);
         checkout(new_cart, cart_size - 1);
     } else {
         puts("Invalid Input");
@@ -334,25 +340,86 @@ void checkout(Item *cart, int cart_size) {
     }
 }
 
-void apply_promotion(double discounted){
+void apply_promotion(double discounted) {
     char buffer[2048];
     char name[10], exp[10];
     double price;
     int id;
 
-    FILE *stock_file = fopen("stock.csv","r");
-    FILE *temp_stock_file = fopen("temp_stock.csv","w");
+    FILE *stock_file = fopen("stock.csv", "r");
+    FILE *temp_stock_file = fopen("temp_stock.csv", "w");
 
     while (fgets(buffer, 255, stock_file) != NULL) {
         sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
-        price = price*(1-discounted);
-        fprintf(temp_stock_file,"%s,%lf,%s,%d\n",name,price,exp,id);
+        price = price * (1 - discounted);
+        fprintf(temp_stock_file, "%s,%lf,%s,%d\n", name, price, exp, id);
     }
     fclose(stock_file);
     fclose(temp_stock_file);
 
     remove("stock.csv");
-    rename("temp_stock.csv","stock.csv");
-
+    rename("temp_stock.csv", "stock.csv");
 }
 
+void admin() {
+    Item *stock = stock_from_file();
+    print_line(38);
+    puts("This is the stock");
+    print_line(38);
+    printf("|%10s|%10s|%10s|%3s|\n", "name", "price", "exp", "id");
+    print_line(38);
+    for (int i = 0; i < item_count; i++) {
+        printf("|%10s|%10lf|%10s|%3d|\n", stock[i].name, stock[i].price,
+               stock[i].exp, stock[i].id);
+    }
+    print_line(38);
+    puts("what you want to do");
+    puts("1 : add new item to stock");
+    puts("2 : remove item from stock");
+    puts("Other if you complete");
+    int mode;
+    printf("what you want to do : ");
+    scanf("%d", &mode);
+    if (mode == 1) {
+        char name[10], exp[10];
+        double price;
+        printf("name : ");
+        scanf("%s", name);
+        printf("price : ");
+        scanf("%lf", &price);
+        printf("expiry date (mm/dd/yyyy) : ");
+        scanf("%s", exp);
+        add_to_stock(name, price, exp, item_count);
+        admin();
+    } else if (mode == 2) {
+        printf("id of item you want to delete : ");
+        int id;
+        scanf("%d", &id);
+        remove_from_stock(id);
+        admin();
+    } else {
+        puts("DONE!!");
+    }
+}
+
+void re_id_stock() {
+    char buffer[2048];
+    char name[10], exp[10];
+    double price;
+    int id;
+
+    FILE *stock_file = fopen("stock.csv", "r");
+    FILE *temp_stock_file = fopen("temp_stock.csv", "w");
+
+    int temp_id = 0;
+    while (fgets(buffer, 255, stock_file) != NULL) {
+        sscanf(buffer, "%20[^,],%lf,%10[^,],%d", name, &price, exp, &id);
+        fprintf(temp_stock_file, "%s,%lf,%s,%d\n", name, price, exp, temp_id);
+        temp_id++;
+    }
+    fclose(stock_file);
+    fclose(temp_stock_file);
+
+    remove("stock.csv");
+    rename("temp_stock.csv", "stock.csv");
+}
