@@ -30,8 +30,9 @@ int main() {
     printf("item_count = %d\n",item_count);
     add_to_stock("chocolate", 169, "2/24/2022",item_count);
     printf("item_count = %d\n",item_count);
-    /* remove_from_stock(2); */
-    /* selling(); */
+    remove_from_stock(2);
+    printf("item_count = %d\n",item_count);
+    selling();
 
     return 0;
 }
@@ -255,23 +256,5 @@ void selling() {
     printf("And to checkout enter \"c\"\n");
     printf("enter here : ");
     scanf("%s", input);
-    if (input[0] == 99) {
-        printf("Checkout now!\n");
-        for (int i = 0; i < cart_idx; i++) {
-            printf("%s\n", cart[i].name);
-        }
-        return;
-    } else if (input[0] > 57 || atoi(input) >= item_count) {
-        puts("Invalid Input");
-        selling();
-    } else {
-        int sel_idx = atoi(input);
-        printf("sel_idx = %d\n", sel_idx);
-        printf("you select %s\n", stock[sel_idx].name);
-        cart[cart_idx] = stock[sel_idx];
-        puts("something broken before here");
-        remove_from_stock(id_arr[sel_idx]);
-        cart_idx++;
-        selling();
-    }
+    printf("you select %d\n",input);
 }
