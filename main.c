@@ -23,16 +23,24 @@ void sort_stock_file();
 void add_to_stock(char *name, double price, char *exp, int id);
 void remove_from_stock(int id);
 Item *stock_from_file();
-void selling();
+void selling(Item *cart);
+void checkout(Item *cart,int cart_size);
 
 int main() {
     start_shop();
-    printf("item_count = %d\n",item_count);
-    add_to_stock("chocolate", 169, "2/24/2022",item_count);
-    printf("item_count = %d\n",item_count);
-    remove_from_stock(2);
-    printf("item_count = %d\n",item_count);
-    selling();
+    int mode;
+    puts("who are you");
+    puts("1 : Store Employee");
+    puts("2 : Customer");
+    printf("Put your number in : ");
+    scanf("%d",&mode);
+    if(mode == 1){
+        puts("admin mode is coming...");
+    }else{
+        Item *cart;
+        cart = malloc(0);
+        selling(cart);
+    }
 
     return 0;
 }
@@ -174,10 +182,11 @@ void add_to_stock(char *name, double price, char *exp, int id) {
 }
 
 void remove_from_stock(int item_id) {
-    if (item_id > item_count) {
-        puts("Item Not Found");
-        return;
-    }
+    /* if (item_id > item_count) { */
+    /*     puts("Item Not Found"); */
+    /*     return; */
+    /* } */
+
     FILE *stock_file, *temp_stock_file;
     char buffer[2048];
     char name[10], exp[10];
@@ -221,9 +230,11 @@ Item *stock_from_file() {
         stock_arr[idx] = item;
         idx++;
     }
+    item_count = idx;
+
+    fclose(stock_file);
 
     return stock_arr;
-    fclose(stock_file);
 }
 void print_line(int length) {
     for (int i = 0; i < length; i++) {
@@ -232,9 +243,10 @@ void print_line(int length) {
     puts("");
 }
 
-void selling() {
+void selling(Item *cart) {
+    print_line(32);
     static int cart_idx = 0;
-    Item cart[item_count];
+    cart = realloc(cart,sizeof(Item) * (cart_idx+1));
     Item *stock = stock_from_file();
     int id_arr[item_count];
     for (int i = 0; i < item_count; i++) {
@@ -255,6 +267,60 @@ void selling() {
     printf("Select item by putting the id in\n");
     printf("And to checkout enter \"c\"\n");
     printf("enter here : ");
-    scanf("%s", input);
-    printf("you select %d\n",input);
+    scanf("%s", &input);
+    if(input[0] == 99 || item_count <= 0){
+        puts("checkout!");
+        checkout(cart,cart_idx);
+    }else if((atoi(input) > 0 || *input == 48) && atoi(input) < item_count){
+        int select_index = atoi(input);
+        cart[cart_idx] = stock[select_index];
+        remove_from_stock(id_arr[select_index]);
+        cart_idx++;
+        selling(cart);
+    }else{
+        puts("Invalid Input");
+        selling(cart);
+    }
+}
+
+void checkout(Item *cart,int cart_size){
+    print_line(23);
+    puts("This is your cart");
+    print_line(23);
+    printf("|id|%-18s|\n", "product");
+    print_line(23);
+    for (int i = 0; i < cart_size; i++) {
+        printf("|%2d|%18s|\n", i,cart[i].name);
+    }
+    print_line(23);
+    puts("If you want to remove anything, you put the number in");
+    printf("finished? enter \"c\"\n");
+    printf("enter here : ");
+    char input[5];
+    scanf("%s", &input);
+    if(input[0] == 99 || item_count <= 0){
+        double total_price = 0;
+        for(int i = 0;i<cart_size;i++){
+            total_price += cart[i].price;
+        }
+        print_line(23);
+        printf("Your total is %lf\n",total_price);
+        print_line(23);
+    }else if(atoi(input) > 0 || *input == 48){
+        int select_index = atoi(input);
+        Item *new_cart;
+        new_cart = realloc(cart,sizeof(Item) * (cart_size));
+        int skip = 0;
+        for(int i = 0;i<cart_size;i++){
+            if(i != select_index){
+                new_cart[i-skip] = cart[i] ;
+            }else{
+                skip++;
+            }
+        }
+        checkout(new_cart,cart_size-1);
+    }else{
+        puts("Invalid Input");
+        checkout(cart, cart_size);
+    }
 }
