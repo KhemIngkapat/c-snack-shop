@@ -29,6 +29,7 @@ void checkout(Item *cart, int cart_size);
 void apply_promotion(double discounted);
 void admin();
 void re_id_stock();
+void stock_to_binary();
 
 int main() {
     srand(time(NULL));
@@ -53,6 +54,8 @@ int main() {
         selling(cart);
     }
     re_id_stock();
+    stock_to_binary();
+
 
     return 0;
 }
@@ -194,10 +197,6 @@ void add_to_stock(char *name, double price, char *exp, int id) {
 }
 
 void remove_from_stock(int item_id) {
-    /* if (item_id > item_count) { */
-    /*     puts("Item Not Found"); */
-    /*     return; */
-    /* } */
 
     FILE *stock_file, *temp_stock_file;
     char buffer[2048];
@@ -256,6 +255,7 @@ void print_line(int length) {
 }
 
 void selling(Item *cart) {
+    printf("\e[1;1H\e[2J");
     print_line(32);
     static int cart_idx = 0;
     cart = realloc(cart, sizeof(Item) * (cart_idx + 1));
@@ -296,6 +296,7 @@ void selling(Item *cart) {
 }
 
 void checkout(Item *cart, int cart_size) {
+    printf("\e[1;1H\e[2J");
     print_line(23);
     puts("This is your cart");
     print_line(23);
@@ -362,6 +363,7 @@ void apply_promotion(double discounted) {
 }
 
 void admin() {
+    printf("\e[1;1H\e[2J");
     Item *stock = stock_from_file();
     print_line(38);
     puts("This is the stock");
@@ -423,3 +425,22 @@ void re_id_stock() {
     remove("stock.csv");
     rename("temp_stock.csv", "stock.csv");
 }
+
+void stock_to_binary(){
+    FILE *stock_file = fopen("stock.csv","r");
+    FILE *stock_bin_file = fopen("stock.bin","w");
+    
+    int num;
+    char ch;
+    
+    while(!feof(stock_file)){
+        fread(&ch,sizeof(char),1,stock_file);
+        num = ch;
+        fwrite(&num,sizeof(int),1,stock_bin_file);
+    }
+
+    fclose(stock_file);
+    fclose(stock_bin_file);
+
+}
+
