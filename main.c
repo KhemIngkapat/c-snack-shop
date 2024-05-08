@@ -3,6 +3,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "time.h"
+// hello
 
 typedef struct item {
     char name[20];
